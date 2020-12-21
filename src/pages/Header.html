@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Header</title>
+<style>
+body {
+  margin:0;
+  font-family: sans-serif;
+}
+
+#pageheader {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #333;
+  top: 0;
+  width: 100%;
+}
+
+li {
+  float: left;
+}
+
+li a, li button {
+  display: inline-block;
+  color: white;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+}
+
+li a:hover {
+  background-color: #666;
+}
+
+#searchbox {
+  margin-top: 10px;
+}
+
+#searchbutton {
+  background-color: #4CAF50;
+  cursor: pointer;
+}
+
+</style>
+<script type='text/javascript'>
+  //For search, redirect to MainPage with parameter in URL
+  function search(){
+    var query = document.getElementById("searchbox").value;
+    if(query == "")
+      return;
+    window.open("MainPage.php?q=" + query, "_top", null, true);
+  }
+</script>
+</head>
+<body>
+<!-- Header -->
+<ul id="pageheader">
+  <li><a href="MainPage.php" target = "_top">E-Bikes</a></li>
+  <li><a href="SupplierPage.php" target = "_top">Leveranciers</a></li>
+  <li><a href="CreatePage.php" target = "_top">Voeg E-Bike toe</a></li>
+  <li><input id="searchbox" placeholder="Zoek E-bike" /></li>
+  <li><button onClick="search()" id="searchbutton" target = "_top">Zoek</button></li>
+</ul>
+</body>
+</html>
