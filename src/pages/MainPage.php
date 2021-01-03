@@ -3,16 +3,14 @@ require '/var/www/html/vendor/autoload.php';
 use Src\DatabaseConnector;
 
 //Init tables, if not already done
-$db = new PDO('mysql:host=db-php-assignment; dbname=assignment', 'development', 'development');
-$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $dc = new DatabaseConnector();
-$dc->init($db);
+$dc->init();
 //If a search query is entered, obtain the search results.
 //Otherwise, obtain all bicycles.
 if(isset($_GET["q"]))
-  $bicycles = $dc->get_bicycles_by_keyword($db, $_GET["q"]);
+  $bicycles = $dc->get_by_keyword($dc::TABLE_BICYCLES, $_GET["q"]);
 else
-  $bicycles = $dc->get_all_bicycles($db);
+  $bicycles = $dc->get_all($dc::TABLE_BICYCLES);
 ?>
 
 <!DOCTYPE html>

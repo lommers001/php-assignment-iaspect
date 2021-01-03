@@ -3,6 +3,7 @@
 namespace Src;
 
 use PDO;
+use Src\QueryBuilder;
 use Src\Objects\Bicycle;
 use Src\Objects\Supplier;
 
@@ -14,6 +15,9 @@ class DatabaseConnector {
     
     private const TYPE_BICYCLE = 0;
     private const TYPE_SUPPLIER = 1;
+    
+    public const TABLE_BICYCLES = "bicycles";
+    public const TABLE_SUPPLIERS = "suppliers";
 
     public function __construct()
     {
@@ -32,8 +36,9 @@ class DatabaseConnector {
     }
 
     //Initialize database - if not done already
-    public function init($db) {
+    public function init() {
         try {
+            $db = $this->get_db();
             //Check if tables exist, if not: create them and add (random) values
             $sql = $db->query('SELECT * FROM bicycles');
             if($sql === false){
@@ -55,15 +60,29 @@ class DatabaseConnector {
         }
     }
     
-    //Create an E-bike
-    public function create_bicycle($db, $bicycle){
+    //Obtain PDO instance s we can communicate with the database
+    private function get_db() {
+        return new PDO('mysql:host=db-php-assignment; dbname=assignment', 'development', 'development');
+    }
+    
+    //Create a new record
+    public function create($table, $object){
         try {
-            $sth = $db->prepare("INSERT INTO bicycles (name, color, battery, supplier, price) VALUES (?, ?, ?, ?, ?)");
-            $sth->bindParam(1, htmlspecialchars($bicycle->name), PDO::PARAM_STR);
-            $sth->bindParam(2, htmlspecialchars($bicycle->color), PDO::PARAM_STR);
-            $sth->bindParam(3, htmlspecialchars($bicycle->battery), PDO::PARAM_STR);
-            $sth->bindParam(4, htmlspecialchars($bicycle->supplier), PDO::PARAM_STR);
-            $sth->bindParam(5, $bicycle->price, PDO::PARAM_INT);
+            $db = $this->get_db();
+            $keys = array_keys(get_object_vars($object));
+            $sql = new QueryBuilder();
+            $sql->INSERT_INTO($table, $keys);
+            $sth = $db->prepare($sql);
+            $i = 1;
+            //For each parameter of the object
+            for( ;$i <= count($keys); $i++) {
+                $param = $keys[$i - 1];
+                $is_string = is_string($object->$param);
+                if ($is_string)
+                    $sth->bindParam($i, htmlspecialchars($object->$param), PDO::PARAM_STR);
+                else
+                    $sth->bindParam($i, $object->$param, PDO::PARAM_INT);
+            }
             $sth->execute();
             return $sth->rowCount() > 0;
         }
@@ -72,26 +91,36 @@ class DatabaseConnector {
         }
     }
     
-    //Get bicycle by its ID
-    public function get_bicycle_by_id($db, $id){
+    //Get record by its ID
+    public function get_by_id($table, $id){
         try {
-            $sth = $db->prepare("SELECT * FROM bicycles WHERE id = ?");
+            $db = $this->get_db();
+            $sql = new QueryBuilder();
+            $sql->SELECT()->FROM($table)->WHERE("id", $sql::EQ);
+            $sth = $db->prepare($sql);
             $sth->bindParam(1, $id, PDO::PARAM_INT);
             $sth->execute();
-            if ($sth->rowCount() > 0)
+            if ($sth->rowCount() == 0)
+                return null;
+            if ($table == self::TABLE_BICYCLES)
                 return new Bicycle($sth->fetch());
-            return null;
+            else
+                return new Supplier($sth->fetch());
+            
         }
         catch( PDOException $e ) {
             return $e->getMessage();
         }
     }
     
-    //Get bicycles via search
-    public function get_bicycles_by_keyword($db, $keyword){
+    //Get records via search
+    public function get_by_keyword($table, $keyword){
         try {
+            $db = $this->get_db();
             $like_param = "%" . htmlspecialchars($keyword) . "%";
-            $sth = $db->prepare("SELECT * FROM bicycles WHERE name LIKE ? OR color LIKE ? OR battery LIKE ? ORDER BY name");
+            $sql = new QueryBuilder();
+            $sql->SELECT()->FROM($table)->WHERE("name", $sql::LIKE)->OR("color", $sql::LIKE)->OR("battery", $sql::LIKE)->ORDER_BY("name");
+            $sth = $db->prepare($sql);
             $sth->execute([$like_param, $like_param, $like_param]);
             return $this->convert_to_object_array($sth->fetchAll(), self::TYPE_BICYCLE);
         }
@@ -100,21 +129,14 @@ class DatabaseConnector {
         }
     }
     
-    //Get all items in the 'bicycles' table
-    public function get_all_bicycles($db){
+    //Get all items from a table
+    public function get_all($table){
         try {
-            $sql = "SELECT * FROM bicycles ORDER BY name;";
-            return $this->convert_to_object_array($db->query($sql)->fetchAll(), self::TYPE_BICYCLE);
-        }
-        catch( PDOException $e ) {
-            return $e->getMessage();
-        }
-    }
-    
-    //Get all items in the 'suppliers' table
-    public function get_all_suppliers($db){
-        try {
-            $sql = "SELECT * FROM suppliers ORDER BY supplier;";
+            $db = $this->get_db();
+            $sql = new QueryBuilder();
+            $sql->SELECT()->FROM($table)->ORDER_BY($table == self::TABLE_BICYCLES ? "name" : "supplier");
+            if ($table == self::TABLE_BICYCLES)
+                return $this->convert_to_object_array($db->query($sql)->fetchAll(), self::TYPE_BICYCLE);
             return $this->convert_to_object_array($db->query($sql)->fetchAll(), self::TYPE_SUPPLIER);
         }
         catch( PDOException $e ) {
@@ -123,10 +145,12 @@ class DatabaseConnector {
     }
     
     //Get all items in both 'suppliers' and 'bicycle' tables, using a join to return one table
-    public function get_suppliers_and_bicycles($db) {
+    public function get_suppliers_and_bicycles() {
         try {
-            $sql = "SELECT name, color, battery, bicycles.supplier AS supplier, price, address, description, id
-                    FROM suppliers INNER JOIN bicycles on bicycles.supplier = suppliers.supplier ORDER BY supplier;";
+            $db = $this->get_db();
+            $sql = new QueryBuilder();
+            $sql->SELECT("name, color, battery, bicycles.supplier AS supplier, price, address, description, id")
+                ->FROM("suppliers")->JOIN("bicycles", "supplier", "supplier")->ORDER_BY("supplier");
             $table = $db->query($sql)->fetchAll();
             $result = array();
             $new_supplier = null;
@@ -148,16 +172,27 @@ class DatabaseConnector {
         }
     }
     
-    //Edit the properties of a bicycle
-    public function update_bicycle($db, $id, $bicycle){
+    //Edit the properties of a record
+    public function update($table, $object){
         try {
-            $sth = $db->prepare("UPDATE bicycles SET name = ?, color = ?, battery = ?, supplier = ?, price = ? WHERE id = ?");
-            $sth->bindParam(1, htmlspecialchars($bicycle->name), PDO::PARAM_STR);
-            $sth->bindParam(2, htmlspecialchars($bicycle->color), PDO::PARAM_STR);
-            $sth->bindParam(3, htmlspecialchars($bicycle->battery), PDO::PARAM_STR);
-            $sth->bindParam(4, htmlspecialchars($bicycle->supplier), PDO::PARAM_STR);
-            $sth->bindParam(5, $bicycle->price, PDO::PARAM_INT);
-            $sth->bindParam(6, $id, PDO::PARAM_INT);
+            $db = $this->get_db();
+            $keys = array_keys(get_object_vars($object));
+            $sql = new QueryBuilder();
+            $sql->UPDATE($table)->SET($keys)->WHERE("id", $sql::EQ);
+            $sth = $db->prepare($sql);
+            $i = 1;
+            //For each parameter of the object
+            for( ;$i <= count($keys); $i++) {
+                $param = $keys[$i - 1];
+                $is_string = is_string($object->$param);
+                if ($is_string)
+                    $sth->bindParam($i, htmlspecialchars($object->$param), PDO::PARAM_STR);
+                else
+                    $sth->bindParam($i, $object->$param, PDO::PARAM_INT);
+            }
+            //Final binding: check for matching ID
+            $sth->bindParam($i, $object->id, PDO::PARAM_INT);
+            
             $sth->execute();
             return $sth->rowCount() > 0;
         }
@@ -166,11 +201,18 @@ class DatabaseConnector {
         }
     }
     
-    //Erase a bicycle from existance
-    public function delete_bicycle($db, $id){
+    //Erase a record from existance
+    public function delete($table, $var, $column_name = "id"){
         try {
-            $sth = $db->prepare("DELETE FROM bicycles WHERE id = ?");
-            $sth->bindParam(1, $id, PDO::PARAM_INT);
+            $db = $this->get_db();
+            $sql = new QueryBuilder;
+            $sql->DELETE()->FROM($table)->WHERE($column_name, $sql::EQ);
+            $sth = $db->prepare($sql);
+            $is_string = is_string($var);
+            if ($is_string)
+                $sth->bindParam(1, htmlspecialchars($var), PDO::PARAM_STR);
+            else
+                $sth->bindParam(1, $var, PDO::PARAM_INT);
             $sth->execute();
             return $sth->rowCount() > 0;
         }
@@ -193,7 +235,9 @@ class DatabaseConnector {
             $battery = $batteries[random_int(0,sizeof($batteries))];
             $supplier = $this->suppliers[random_int(0, sizeof($this->suppliers))];
             $price = random_int(900, 2400);
-            $this->create_bicycle($db, $name, $color, $battery, $supplier, $price);
+            $arr = ["name"=> $name, "color"=> $color, "battery"=> $battery, "supplier"=> $supplier, "price"=> $price];
+            $bicycle = new Bicycle($arr);
+            $this->create(self::TABLE_BICYCLES, $bicycle);
         }
     }
 
@@ -205,11 +249,9 @@ class DatabaseConnector {
             $name = $this->suppliers[$N];
             $address = $adds[$N];
             $description = $descs[$N];
-            $sth = $db->prepare("INSERT INTO suppliers (name, address, description) VALUES (?, ?, ?)");
-            $sth->bindParam(1, htmlspecialchars($name), PDO::PARAM_STR);
-            $sth->bindParam(2, htmlspecialchars($address), PDO::PARAM_STR);
-            $sth->bindParam(3, htmlspecialchars($description), PDO::PARAM_STR);
-            try { $sth->execute(); } catch( PDOException $e ) { die( $e->getMessage() ); }
+            $arr = ["name"=> $name, "address"=> $address, "description"=> $description];
+            $supplier = new Supplier($arr);
+            $this->create(self::TABLE_SUPPLIERS, $supplier);
         }
     }
     

@@ -6,9 +6,9 @@ namespace Src\Objects;
 
 class Supplier {
 
-    private string $name;
-    private string $address;
-    private string $description;
+    public string $name;
+    public string $address;
+    public string $description;
     private $bicycles;
 
     public function __construct($record)

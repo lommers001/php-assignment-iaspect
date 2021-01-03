@@ -3,18 +3,16 @@ require '/var/www/html/vendor/autoload.php';
 use Src\DatabaseConnector;
 
 //Init tables, if not already done
-$db = new PDO('mysql:host=db-php-assignment; dbname=assignment', 'development', 'development');
-$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $dc = new DatabaseConnector();
-$dc->init($db);
+$dc->init();
 //Obtain supplier's names
-$suppliers = $dc->get_all_suppliers($db);
+$suppliers = $dc->get_all($dc::TABLE_SUPPLIERS);
 //Obtain bicycle info
 $bicycle;
 $id = -1;
 if(isset($_GET["id"]))
   $id = $_GET["id"];
-$bicycle = $dc->get_bicycle_by_id($db, $id);
+$bicycle = $dc->get_by_id($dc::TABLE_BICYCLES, $id);
 ?>
 
 <!DOCTYPE html>

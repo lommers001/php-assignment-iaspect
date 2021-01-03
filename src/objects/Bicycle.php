@@ -4,11 +4,11 @@ namespace Src\Objects;
 
 class Bicycle {
 
-    private string $name;
-    private string $color;
-    private string $battery;
-    private string $supplier;
-    private float $price;
+    public string $name;
+    public string $color;
+    public string $battery;
+    public string $supplier;
+    public float $price;
     private int $id;
 
     public function __construct($record)
