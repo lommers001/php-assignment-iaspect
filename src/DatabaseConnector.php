@@ -47,7 +47,6 @@ class DatabaseConnector {
                 $this->populate_suppliers_rnd($db);
                 //$this->populate_bicycles_rnd($db, 3);
             }
-            //$sql = $db->query('ALTER TABLE suppliers CHANGE name supplier VARCHAR(80)');
         }
         catch( PDOException $e ) {
             die( $e->getMessage() );
@@ -73,9 +72,9 @@ class DatabaseConnector {
             $sql = new QueryBuilder();
             $sql->INSERT_INTO($table, $keys);
             $sth = $db->prepare($sql);
-            $i = 1;
+            $number_of_keys = count($keys);
             //For each parameter of the object
-            for( ;$i <= count($keys); $i++) {
+            for($i = 1; $i <= $number_of_keys; $i++) {
                 $param = $keys[$i - 1];
                 $is_string = is_string($object->$param);
                 if ($is_string)
@@ -104,9 +103,10 @@ class DatabaseConnector {
                 return null;
             if ($table == self::TABLE_BICYCLES)
                 return new Bicycle($sth->fetch());
-            else
+            else if ($table == self::TABLE_SUPPLIERS)
                 return new Supplier($sth->fetch());
-            
+            else
+                return $sth->fetchAll();
         }
         catch( PDOException $e ) {
             return $e->getMessage();
@@ -180,9 +180,9 @@ class DatabaseConnector {
             $sql = new QueryBuilder();
             $sql->UPDATE($table)->SET($keys)->WHERE("id", $sql::EQ);
             $sth = $db->prepare($sql);
-            $i = 1;
+            $number_of_keys = count($keys);
             //For each parameter of the object
-            for( ;$i <= count($keys); $i++) {
+            for($i = 1; $i <= $number_of_keys; $i++) {
                 $param = $keys[$i - 1];
                 $is_string = is_string($object->$param);
                 if ($is_string)
@@ -245,7 +245,8 @@ class DatabaseConnector {
     private function populate_suppliers_rnd($db) {
         $adds = ["Amsterdam","New York","Verweggistan"];
         $descs = ["De beste ter wereld!","Gewoon omdat het kan!","Totaalcomfort is ons motto!"];
-        for ($N = 0; $N < sizeof($this->suppliers); $N++){
+        $number_of_suppliers = count($this->suppliers)
+        for ($N = 0; $N < $number_of_suppliers; $N++){
             $name = $this->suppliers[$N];
             $address = $adds[$N];
             $description = $descs[$N];
