@@ -17,7 +17,7 @@ class CRUD {
     private const TYPE_SUPPLIER = 1;
 
     //Initialize database - if not done already
-    public function init() {
+    public static function init() {
         $sql = new QueryBuilder();
         //Check if tables exist, if not: create them and add (random) values
         $sql->select()->from(self::TABLE_BICYCLES);
