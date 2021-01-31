@@ -1,12 +1,11 @@
 <?php
 require '/var/www/html/vendor/autoload.php';
-use Src\DatabaseConnector;
+use Src\CRUD;
 
 //Init tables, if not already done
-$dc = new DatabaseConnector();
-$dc->init();
+CRUD::init();
 //Obtain supplier's names
-$suppliers = $dc->get_all($dc::TABLE_SUPPLIERS);
+$suppliers = CRUD::getAll(CRUD::TABLE_SUPPLIERS);
 ?>
 
 <!DOCTYPE html>

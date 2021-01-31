@@ -1,18 +1,17 @@
 <?php
 require '/var/www/html/vendor/autoload.php';
-use Src\DatabaseConnector;
+use Src\CRUD;
 
 //Init tables, if not already done
-$dc = new DatabaseConnector();
-$dc->init();
+CRUD::init();
 //Obtain supplier's names
-$suppliers = $dc->get_all($dc::TABLE_SUPPLIERS);
+$suppliers = CRUD::getAll(CRUD::TABLE_SUPPLIERS);
 //Obtain bicycle info
 $bicycle;
 $id = -1;
 if(isset($_GET["id"]))
-  $id = $_GET["id"];
-$bicycle = $dc->get_by_id($dc::TABLE_BICYCLES, $id);
+  $id = intval($_GET["id"]);
+$bicycle = CRUD::getById(CRUD::TABLE_BICYCLES, $id);
 ?>
 
 <!DOCTYPE html>

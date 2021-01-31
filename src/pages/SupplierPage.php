@@ -1,12 +1,11 @@
 <?php
 require '/var/www/html/vendor/autoload.php';
-use Src\DatabaseConnector;
+use Src\CRUD;
 
 //Init tables, if not already done
-$dc = new DatabaseConnector();
-$dc->init();
+CRUD::init();
 //Obtain data
-$suppliers = $dc->get_suppliers_and_bicycles();
+$suppliers = CRUD::getSuppliersAndBicycles();
 ?>
 
 <!DOCTYPE html>

@@ -47,7 +47,7 @@ li a:hover {
 <script type='text/javascript'>
   //For search, redirect to MainPage with parameter in URL
   function search(){
-    var query = document.getElementById("searchbox").value;
+    var query = encodeURIComponent(document.getElementById("searchbox").value);
     if(query == "")
       return;
     window.open("MainPage.php?q=" + query, "_top", null, true);

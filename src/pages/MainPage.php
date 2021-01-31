@@ -1,16 +1,15 @@
 <?php
 require '/var/www/html/vendor/autoload.php';
-use Src\DatabaseConnector;
+use Src\CRUD;
 
 //Init tables, if not already done
-$dc = new DatabaseConnector();
-$dc->init();
+CRUD::init();
 //If a search query is entered, obtain the search results.
 //Otherwise, obtain all bicycles.
 if(isset($_GET["q"]))
-  $bicycles = $dc->get_by_keyword($dc::TABLE_BICYCLES, $_GET["q"]);
+  $bicycles = CRUD::getByKeyword(CRUD::TABLE_BICYCLES, $_GET["q"]);
 else
-  $bicycles = $dc->get_all($dc::TABLE_BICYCLES);
+  $bicycles = CRUD::getAll(CRUD::TABLE_BICYCLES);
 ?>
 
 <!DOCTYPE html>
